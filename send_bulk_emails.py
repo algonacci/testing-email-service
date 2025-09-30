@@ -19,6 +19,9 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Import crypto helper for password encryption
+from crypto_helper import encrypt_smtp_password
+
 
 class BulkEmailTester:
     """Email service tester for bulk email sending"""
@@ -71,11 +74,16 @@ class BulkEmailTester:
         """Create individual email job for bulk sending"""
 
         # SMTP configuration from environment
+        smtp_password = os.getenv("SMTP_PASSWORD")
+
+        # Encrypt SMTP password
+        encrypted_password = encrypt_smtp_password(smtp_password)
+
         smtp_config = {
             "host": os.getenv("SMTP_HOST", "smtp.gmail.com"),
             "port": int(os.getenv("SMTP_PORT", "587")),
             "user": os.getenv("SMTP_USER"),
-            "password": os.getenv("SMTP_PASSWORD"),
+            "password": encrypted_password,  # ✅ Encrypted password
             "from_name": "Bulk Email Test",
             "from_email": os.getenv("SMTP_USER"),
             "use_tls": True,
