@@ -22,18 +22,26 @@ load_dotenv()
 # Import our email configuration
 from email_config import get_simple_recipients, TEST_EMAILS
 
+# Import crypto helper for password encryption
+from crypto_helper import encrypt_smtp_password
+
 
 class EmailServiceTester:
     """Simple email service tester using RabbitMQ"""
 
     def __init__(self):
         # Build RabbitMQ URL from environment variables
+        import urllib.parse
+        
         rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
         rabbitmq_port = os.getenv("RABBITMQ_PORT", "5672")
         rabbitmq_user = os.getenv("RABBITMQ_USER", "guest")
         rabbitmq_password = os.getenv("RABBITMQ_PASSWORD", "guest")
-
-        self.rabbitmq_url = f"amqp://{rabbitmq_user}:{rabbitmq_password}@{rabbitmq_host}:{rabbitmq_port}/"
+        
+        # URL encode the password to handle special characters like '?' or '@'
+        safe_password = urllib.parse.quote_plus(rabbitmq_password)
+        
+        self.rabbitmq_url = f"amqp://{rabbitmq_user}:{safe_password}@{rabbitmq_host}:{rabbitmq_port}/"
         self.queue_name = "email_queue"
         self.connection: Optional[aio_pika.Connection] = None
         self.channel: Optional[aio_pika.Channel] = None
@@ -73,11 +81,17 @@ class EmailServiceTester:
         """Create email job payload following CLAUDE.md structure"""
 
         # SMTP configuration from environment
+        smtp_password = os.getenv("SMTP_PASSWORD")
+
+        # Encrypt SMTP password
+        encrypted_password = encrypt_smtp_password(smtp_password)
+        print(f"🔐 SMTP password encrypted (length: {len(encrypted_password)} chars)")
+
         default_smtp = {
             "host": os.getenv("SMTP_HOST", "smtp.gmail.com"),
             "port": int(os.getenv("SMTP_PORT", "587")),
             "user": os.getenv("SMTP_USER"),
-            "password": os.getenv("SMTP_PASSWORD"),
+            "password": encrypted_password,  # ✅ Encrypted password
             "from_name": "Email Service Test",
             "from_email": os.getenv("SMTP_USER"),  # Use same as user for Gmail
             "use_tls": True,

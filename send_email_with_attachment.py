@@ -30,12 +30,17 @@ class EmailWithAttachmentTester:
 
     def __init__(self):
         # Build RabbitMQ URL from environment variables
+        import urllib.parse
+        
         rabbitmq_host = os.getenv("RABBITMQ_HOST", "localhost")
         rabbitmq_port = os.getenv("RABBITMQ_PORT", "5672")
         rabbitmq_user = os.getenv("RABBITMQ_USER", "guest")
         rabbitmq_password = os.getenv("RABBITMQ_PASSWORD", "guest")
-
-        self.rabbitmq_url = f"amqp://{rabbitmq_user}:{rabbitmq_password}@{rabbitmq_host}:{rabbitmq_port}/"
+        
+        # URL encode the password to handle special characters like '?' or '@'
+        safe_password = urllib.parse.quote_plus(rabbitmq_password)
+        
+        self.rabbitmq_url = f"amqp://{rabbitmq_user}:{safe_password}@{rabbitmq_host}:{rabbitmq_port}/"
         self.queue_name = "email_queue"
         self.connection: Optional[aio_pika.Connection] = None
         self.channel: Optional[aio_pika.Channel] = None
